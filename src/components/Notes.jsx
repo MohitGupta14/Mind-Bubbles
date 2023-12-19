@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { Public, Lock } from '@mui/icons-material';
 import { Textarea } from '@nextui-org/react';
 import PublicNotes from './PublicNotes';
-
+import { useEffect } from 'react';
 
 const Notes = ({ showPublicNotes }) => {
   const [newNote, setNewNote] = useState('');
   const [notes, setNotes] = useState([]);
-  const [publicNotes, setPublicNotes] = useState([]); // Track public/private status for each note individually
+  const [publicNotes, setPublicNotes] = useState([]);
 
   const handleInputChange = (e) => {
     setNewNote(e.target.value);
@@ -18,26 +18,102 @@ const Notes = ({ showPublicNotes }) => {
     updatedPublicNotes[index] = !updatedPublicNotes[index]; // Toggle the public/private status for the specific note
     setPublicNotes(updatedPublicNotes);
   };
-  const handleTogglePrivate =(index) =>{
+
+  const handleTogglePrivate = (index) => {
     const updatedPublicNotes = [...publicNotes];
     updatedPublicNotes.splice(index, 1);
-  }
-  const handleAddNote = () => {
+    setPublicNotes(updatedPublicNotes);
+  };
+  useEffect(() => {
+    const fetchNotes = async () => {
+      try {
+        const response = await fetch('/api/customers');
+        const notesData = await response.json();
+        console.log('Fetched notes:', notesData[0].content);
+        for(let i = 0 ; i < notesData.length; i++) {
+         if(!notes.includes(notesData[i].content)){
+           notes.push(notesData[i].content);
+         }
+        }
+        // Optionally, filter and set public notes based on your data model
+        const publicNotesData = notesData.filter((note) => note.status === 'public');
+        setPublicNotes(publicNotesData);
+      } catch (error) {
+        console.error('Error fetching notes:', error.message);
+      }
+    };
+
+    fetchNotes();
+  }, []); // Run the fetchNotes function only once when the component mounts
+
+  const handleAddNote = async () => {
     if (newNote.trim() !== '') {
+      // Update client-side state
       setNotes([newNote, ...notes]);
-      setPublicNotes([newNote, ...publicNotes]); // Set the default status to public for each new note
+      setPublicNotes([newNote, ...publicNotes]); 
       setNewNote('');
+
+      // Add the note to the database
+      try {
+        const response = await addNoteToDatabase({ content: newNote, status: 'public' });
+        if (response.ok) {
+          const newNoteData = await response.json();
+          console.log('Added note to database:', newNoteData);
+          // Optionally, you can perform additional actions with the response from the server
+        } else {
+          console.error('Failed to add note to database');
+        }
+      } catch (error) {
+        console.error('Error adding note to database:', error.message);
+      }
+    }
+  };
+
+  const addNoteToDatabase = async (newNote) => {
+    try {
+      const response = await fetch('/api/customers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newNote),
+      });
+
+      return response;
+    } catch (error) {
+      throw new Error('Error adding note to database');
     }
   };
 
   const handleDeleteNote = (index) => {
     const updatedNotes = [...notes];
     const updatedPublicNotes = [...publicNotes];
-    updatedNotes.splice(index, 1);
+    const deletedNote = updatedNotes.splice(index, 1)[0];
     updatedPublicNotes.splice(index, 1);
     setNotes(updatedNotes);
-    setPublicNotes(updatedPublicNotes);
+    deleteNoteFromServer(index)
   };
+  
+  const deleteNoteFromServer = async (index) => {
+    try {
+      // Perform an API call to delete the note from the server
+      const response = await fetch('/api/customers');
+      const notesData = await response.json();
+      let noteId =  notesData[index]._id;
+      console.log(noteId);
+      await fetch(`/api/customers/${noteId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+  
+      console.log(`Note with ID ${noteId} deleted from server`);
+    } catch (error) {
+      console.error('Error deleting note from server:', error.message);
+    }
+  };
+
   const faintBlue = 'bg-blue-200'; 
 
   const dustbinSvg = (index) => (
