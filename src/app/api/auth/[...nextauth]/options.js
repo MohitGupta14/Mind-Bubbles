@@ -36,7 +36,7 @@ const options = {
         },
       },
       async authorize(credentials) {
-        const user = { id: "42", name: "user", password: "123123" };
+        const user = { name: "user", password: "123123" };
         if (
           credentials.username === user.name &&
           credentials.password === user.password
@@ -49,7 +49,6 @@ const options = {
     }),
   ],
 
-  
   theme: {
     colorScheme: "light", // "auto" | "dark" | "light"
     brandColor: "#5FA5F9", // Hex color code

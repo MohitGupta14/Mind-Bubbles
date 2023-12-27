@@ -3,6 +3,8 @@ import { Public, Lock } from '@mui/icons-material';
 import { Textarea } from '@nextui-org/react';
 import PublicNotes from './PublicNotes';
 import { useEffect } from 'react';
+import axios from 'axios';
+
 
 const Notes = ({ showPublicNotes }) => {
   const [newNote, setNewNote] = useState('');
@@ -44,22 +46,19 @@ const Notes = ({ showPublicNotes }) => {
     };
 
     fetchNotes();
-  }, []); // Run the fetchNotes function only once when the component mounts
-
+  }, []); 
+  
   const handleAddNote = async () => {
     if (newNote.trim() !== '') {
-      // Update client-side state
       setNotes([newNote, ...notes]);
       setPublicNotes([newNote, ...publicNotes]); 
       setNewNote('');
-
       // Add the note to the database
       try {
-        const response = await addNoteToDatabase({ content: newNote, status: 'public' });
+        const response = await addNoteToDatabase({user : data, content: newNote, Status: 'public' });
         if (response.ok) {
           const newNoteData = await response.json();
           console.log('Added note to database:', newNoteData);
-          // Optionally, you can perform additional actions with the response from the server
         } else {
           console.error('Failed to add note to database');
         }
@@ -91,26 +90,30 @@ const Notes = ({ showPublicNotes }) => {
     const deletedNote = updatedNotes.splice(index, 1)[0];
     updatedPublicNotes.splice(index, 1);
     setNotes(updatedNotes);
+  
     deleteNoteFromServer(index)
   };
   
   const deleteNoteFromServer = async (index) => {
+    const response = await axios.get('/api/customers');
+    const notesData = response.data;
+  
+    const  customerId = notesData[index]._id;
     try {
-      // Perform an API call to delete the note from the server
-      const response = await fetch('/api/customers');
-      const notesData = await response.json();
-      let noteId =  notesData[index]._id;
-      console.log(noteId);
-      await fetch(`/api/customers/${noteId}`, {
-        method: 'DELETE',
+      if (!customerId) {
+        throw new Error('Customer ID not provided');
+      }
+  
+      await axios.delete(`/api/customers?id=${customerId}`, {
         headers: {
           'Content-Type': 'application/json',
         },
       });
-  
-      console.log(`Note with ID ${noteId} deleted from server`);
+      console.log(`Customer with ID ${customerId} deleted from the server using axios`);
     } catch (error) {
-      console.error('Error deleting note from server:', error.message);
+      console.error('Error deleting customer from the server:', error.message);
+      // Optionally, you can send an error response or rethrow the error here
+      throw error;
     }
   };
 

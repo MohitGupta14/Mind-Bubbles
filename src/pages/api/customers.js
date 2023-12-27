@@ -1,31 +1,47 @@
-import { MongoClient } from 'mongodb';
+import mongoose from 'mongoose';
+
+const customerSchema = new mongoose.Schema({
+  title: String,
+  content: String,
+});
+
+const Customer = mongoose.models.Customer || mongoose.model('Customer', customerSchema);
 
 export default async function handler(req, res) {
-  const client = new MongoClient(process.env.MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  });
-
   try {
-    await client.connect();
+    await mongoose.connect(process.env.MONGODB_URI);
     console.log('Connected to MongoDB');
-
-    const database = client.db();
-    const collection = database.collection('Customer');
 
     if (req.method === 'GET') {
       // Handle GET request
-      const data = await collection.find({}).toArray();
+      const data = await Customer.find({});
       console.log('Data from MongoDB:', data);
       res.status(200).json(data);
     } else if (req.method === 'POST') {
       // Handle POST request
-      const { title, content } = req.body;
-      const newNote = { title, content };
-      const result = await collection.insertOne(newNote);
+      const { title, content } = req.body; // Assuming userid is provided in the request body
+      const newNote = new Customer({ title, content});
+      const result = await newNote.save();
 
-      console.log('Added note:', result.ops[0]);
-      res.status(201).json(result.ops[0]);
+      console.log('Added note:', result);
+      res.status(201).json(result);
+    } else if (req.method === 'DELETE') {
+      // Handle DELETE request
+      const customerId = req.query.id;
+
+      if (!customerId) {
+        res.status(400).json({ error: 'Customer ID not provided' });
+        return;
+      }
+
+      const deletedCustomer = await Customer.findByIdAndDelete(customerId);
+
+      if (!deletedCustomer) {
+        res.status(404).json({ error: 'Customer not found' });
+      } else {
+        console.log(`Customer with ID ${customerId} deleted`);
+        res.status(200).json({ message: 'Customer deleted successfully' });
+      }
     } else {
       // Handle other HTTP methods
       res.status(405).json({ error: 'Method Not Allowed' });
@@ -34,6 +50,6 @@ export default async function handler(req, res) {
     console.error('Error processing request:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   } finally {
-    await client.close();
+    await mongoose.disconnect();
   }
 }
