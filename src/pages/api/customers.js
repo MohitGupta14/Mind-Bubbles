@@ -1,11 +1,12 @@
 import mongoose from 'mongoose';
 
-const customerSchema = new mongoose.Schema({
-  title: String,
-  content: String,
-});
-
-const Customer = mongoose.models.Customer || mongoose.model('Customer', customerSchema);
+  const customerSchema = new mongoose.Schema({
+    status: String,
+    content: String,
+    token: String
+  });
+  
+  const Customer =  mongoose.model('Customer', customerSchema);
 
 export default async function handler(req, res) {
   try {
@@ -19,8 +20,8 @@ export default async function handler(req, res) {
       res.status(200).json(data);
     } else if (req.method === 'POST') {
       // Handle POST request
-      const { title, content } = req.body; // Assuming userid is provided in the request body
-      const newNote = new Customer({ title, content});
+      const { status, content ,token } = req.body; // Change "title" to "Title"
+      const newNote = new Customer({ status, content, token }); // Change "title" to "Title"
       const result = await newNote.save();
 
       console.log('Added note:', result);

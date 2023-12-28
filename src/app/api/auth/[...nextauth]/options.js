@@ -22,12 +22,12 @@ const options = {
     }),
 
     CredentialsProvider({
-      name: "credentials",
+      user : "credentials",
       credentials: {
-        username: {
-          label: "username",
+        email: {
+          label: "mail",
           type: "text",
-          placeholder: "enter username",
+          placeholder: "enter email",
         },
         password: {
           label: "password",
@@ -36,9 +36,9 @@ const options = {
         },
       },
       async authorize(credentials) {
-        const user = { name: "user", password: "123123" };
+        const user = { email: "user@mail.com", password: "123123" };
         if (
-          credentials.username === user.name &&
+          credentials.email === user.email &&
           credentials.password === user.password
         ) {
           return user;

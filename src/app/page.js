@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 import Navbar from "../components/Navbar";
 import Notes from "../components/Notes";
 import axios from 'axios';
+import { SessionProvider } from "next-auth/react"
+
 // pages/index.js
 
 import { useEffect } from 'react';
@@ -24,16 +26,16 @@ export default function Home() {
   }, []);
 
   const [showPublicNotes, setShowPublicNotes] = useState(false);
-
   const togglePublicNotes = () => {
     setShowPublicNotes(!showPublicNotes);
   };
 
+
   return (
-    <main className="">
+    <SessionProvider className="">
       <Navbar onTogglePublicNotes={togglePublicNotes} />
       <Notes showPublicNotes={showPublicNotes} />
-   </main>
+   </SessionProvider>
   );
 }
 

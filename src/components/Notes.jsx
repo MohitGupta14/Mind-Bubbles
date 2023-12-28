@@ -4,12 +4,14 @@ import { Textarea } from '@nextui-org/react';
 import PublicNotes from './PublicNotes';
 import { useEffect } from 'react';
 import axios from 'axios';
-
+import { useSession } from "next-auth/react"
 
 const Notes = ({ showPublicNotes }) => {
   const [newNote, setNewNote] = useState('');
   const [notes, setNotes] = useState([]);
   const [publicNotes, setPublicNotes] = useState([]);
+  const [isPrivate, setIsPrivate] = useState(true);
+  const { data: session, status } = useSession()
 
   const handleInputChange = (e) => {
     setNewNote(e.target.value);
@@ -24,8 +26,10 @@ const Notes = ({ showPublicNotes }) => {
   const handleTogglePrivate = (index) => {
     const updatedPublicNotes = [...publicNotes];
     updatedPublicNotes.splice(index, 1);
+    setIsPrivate(false);
     setPublicNotes(updatedPublicNotes);
   };
+
   useEffect(() => {
     const fetchNotes = async () => {
       try {
@@ -37,8 +41,7 @@ const Notes = ({ showPublicNotes }) => {
            notes.push(notesData[i].content);
          }
         }
-        // Optionally, filter and set public notes based on your data model
-        const publicNotesData = notesData.filter((note) => note.status === 'public');
+        const publicNotesData = notesData.filter((note) => note.status === true);
         setPublicNotes(publicNotesData);
       } catch (error) {
         console.error('Error fetching notes:', error.message);
@@ -47,23 +50,27 @@ const Notes = ({ showPublicNotes }) => {
 
     fetchNotes();
   }, []); 
-  
+
+
   const handleAddNote = async () => {
-    if (newNote.trim() !== '') {
-      setNotes([newNote, ...notes]);
-      setPublicNotes([newNote, ...publicNotes]); 
-      setNewNote('');
-      // Add the note to the database
-      try {
-        const response = await addNoteToDatabase({user : data, content: newNote, Status: 'public' });
-        if (response.ok) {
-          const newNoteData = await response.json();
-          console.log('Added note to database:', newNoteData);
-        } else {
-          console.error('Failed to add note to database');
+    if (status === "authenticated") {
+      console.log(session.user.email);
+    
+      if (newNote.trim() !== '') {
+        setNotes([newNote, ...notes]);
+        setPublicNotes([newNote, ...publicNotes]); 
+        setNewNote('');
+        try {
+          const response = await addNoteToDatabase({  status : isPrivate, content: newNote , token :session.user.email});
+          if (response.ok) {
+            const newNoteData = await response.json();
+            console.log('Added note to database:', newNoteData);
+          } else {
+            console.error('Failed to add note to database');
+          }
+        } catch (error) {
+          console.error('Error adding note to database:', error.message);
         }
-      } catch (error) {
-        console.error('Error adding note to database:', error.message);
       }
     }
   };
@@ -77,7 +84,7 @@ const Notes = ({ showPublicNotes }) => {
         },
         body: JSON.stringify(newNote),
       });
-
+      
       return response;
     } catch (error) {
       throw new Error('Error adding note to database');
@@ -90,7 +97,6 @@ const Notes = ({ showPublicNotes }) => {
     const deletedNote = updatedNotes.splice(index, 1)[0];
     updatedPublicNotes.splice(index, 1);
     setNotes(updatedNotes);
-  
     deleteNoteFromServer(index)
   };
   
@@ -186,9 +192,15 @@ const Notes = ({ showPublicNotes }) => {
                   <div>{dustbinSvg(index)}</div>
                 </div>
                 <div className="justify-start pd-2 mr-2 ">
-                  <button onClick={() => handleTogglePublic(index)}>
+                <button onClick={() => {
+                      if (!publicNotes[index]) {
+                        handleTogglePrivate(index);
+                      } else {
+                        handleTogglePublic(index);
+                      }
+                    }}>
                     {!publicNotes[index] ? <Lock /> : <Public />}
-                  </button>
+                </button>
                 </div>
               </div>
             </div>
