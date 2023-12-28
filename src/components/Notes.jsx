@@ -33,12 +33,15 @@ const Notes = ({ showPublicNotes }) => {
   useEffect(() => {
     const fetchNotes = async () => {
       try {
+        console.log(session.user.email);
         const response = await fetch('/api/customers');
         const notesData = await response.json();
-        console.log('Fetched notes:', notesData[0].content);
+        console.log("Length of notes is " + notes.length);
         for(let i = 0 ; i < notesData.length; i++) {
          if(!notes.includes(notesData[i].content)){
+          if(notesData[i].token === session.user.email){
            notes.push(notesData[i].content);
+          }
          }
         }
         const publicNotesData = notesData.filter((note) => note.status === true);
@@ -47,10 +50,10 @@ const Notes = ({ showPublicNotes }) => {
         console.error('Error fetching notes:', error.message);
       }
     };
-
+   if(session){
     fetchNotes();
-  }, []); 
-
+   }
+  }, [session]); 
 
   const handleAddNote = async () => {
     if (status === "authenticated") {
@@ -118,7 +121,6 @@ const Notes = ({ showPublicNotes }) => {
       console.log(`Customer with ID ${customerId} deleted from the server using axios`);
     } catch (error) {
       console.error('Error deleting customer from the server:', error.message);
-      // Optionally, you can send an error response or rethrow the error here
       throw error;
     }
   };
