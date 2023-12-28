@@ -5,8 +5,6 @@ import Notes from "../components/Notes";
 import axios from 'axios';
 import { SessionProvider } from "next-auth/react"
 
-// pages/index.js
-
 import { useEffect } from 'react';
 
 const fetchData = async () => {
@@ -20,21 +18,18 @@ const fetchData = async () => {
 };
 
 export default function Home() {
-
   useEffect(() => {
     fetchData();
   }, []);
 
-  const [showPublicNotes, setShowPublicNotes] = useState(false);
   const togglePublicNotes = () => {
     setShowPublicNotes(!showPublicNotes);
   };
 
-
   return (
     <SessionProvider className="">
       <Navbar onTogglePublicNotes={togglePublicNotes} />
-      <Notes showPublicNotes={showPublicNotes} />
+      <Notes />
    </SessionProvider>
   );
 }

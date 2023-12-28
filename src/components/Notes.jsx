@@ -1,39 +1,25 @@
 import React, { useState } from 'react';
-import { Public, Lock } from '@mui/icons-material';
 import { Textarea } from '@nextui-org/react';
-import PublicNotes from './PublicNotes';
 import { useEffect } from 'react';
 import axios from 'axios';
 import { useSession } from "next-auth/react"
+import { PulseLoader } from 'react-spinners';
 
-const Notes = ({ showPublicNotes }) => {
+
+const Notes = () => {
   const [newNote, setNewNote] = useState('');
   const [notes, setNotes] = useState([]);
-  const [publicNotes, setPublicNotes] = useState([]);
   const [isPrivate, setIsPrivate] = useState(true);
-  const { data: session, status } = useSession()
+  const [loading, setLoading] = useState(false);
+  const { data: session, status } = useSession();
 
   const handleInputChange = (e) => {
     setNewNote(e.target.value);
   };
-
-  const handleTogglePublic = (index) => {
-    const updatedPublicNotes = [...publicNotes];
-    updatedPublicNotes[index] = !updatedPublicNotes[index]; // Toggle the public/private status for the specific note
-    setPublicNotes(updatedPublicNotes);
-  };
-
-  const handleTogglePrivate = (index) => {
-    const updatedPublicNotes = [...publicNotes];
-    updatedPublicNotes.splice(index, 1);
-    setIsPrivate(false);
-    setPublicNotes(updatedPublicNotes);
-  };
-
   useEffect(() => {
     const fetchNotes = async () => {
       try {
-        console.log(session.user.email);
+        setLoading(true);
         const response = await fetch('/api/customers');
         const notesData = await response.json();
         console.log("Length of notes is " + notes.length);
@@ -44,8 +30,7 @@ const Notes = ({ showPublicNotes }) => {
           }
          }
         }
-        const publicNotesData = notesData.filter((note) => note.status === true);
-        setPublicNotes(publicNotesData);
+        setLoading(false);
       } catch (error) {
         console.error('Error fetching notes:', error.message);
       }
@@ -61,7 +46,6 @@ const Notes = ({ showPublicNotes }) => {
     
       if (newNote.trim() !== '') {
         setNotes([newNote, ...notes]);
-        setPublicNotes([newNote, ...publicNotes]); 
         setNewNote('');
         try {
           const response = await addNoteToDatabase({  status : isPrivate, content: newNote , token :session.user.email});
@@ -94,20 +78,19 @@ const Notes = ({ showPublicNotes }) => {
     }
   };
 
-  const handleDeleteNote = (index) => {
+  const handleDeleteNote = async (index) => {
+    setLoading(true);
     const updatedNotes = [...notes];
-    const updatedPublicNotes = [...publicNotes];
     const deletedNote = updatedNotes.splice(index, 1)[0];
-    updatedPublicNotes.splice(index, 1);
     setNotes(updatedNotes);
-    deleteNoteFromServer(index)
+    await deleteNoteFromServer(index)
+    setLoading(false);
   };
   
   const deleteNoteFromServer = async (index) => {
     const response = await axios.get('/api/customers');
     const notesData = response.data;
-  
-    const  customerId = notesData[index]._id;
+    const customerId = notesData[index]._id;
     try {
       if (!customerId) {
         throw new Error('Customer ID not provided');
@@ -138,7 +121,6 @@ const Notes = ({ showPublicNotes }) => {
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      onClick={() => handleDeleteNote(index)}
       className="cursor-pointer"
     >
       <polyline points="3 6 5 6 21 6" />
@@ -149,7 +131,7 @@ const Notes = ({ showPublicNotes }) => {
   );
 
   const plusSvg = () => (
-      <svg
+    <svg
     xmlns="http://www.w3.org/2000/svg"
     width="16"
     height="16"
@@ -178,7 +160,6 @@ const Notes = ({ showPublicNotes }) => {
            {plusSvg()}
         </button>
       </div>
-      {showPublicNotes ?  <PublicNotes notes={publicNotes} /> :
       <div className="flex mt-4 mx-2 pl-2 w-full lg:w-90p">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
           {
@@ -191,24 +172,29 @@ const Notes = ({ showPublicNotes }) => {
               <div className="relative flex flex-col h-full">
                 <div className="flex-grow pd-2 mr-2">{note}</div>
                 <div className="flex justify-end">
-                  <div>{dustbinSvg(index)}</div>
+                  <button onClick={async () => { 
+                      try {
+                        setLoading(true);
+                        await handleDeleteNote(index);
+                      } catch (error) {
+                        console.error('Error deleting note:', error.message);
+                      } finally {
+                        setLoading(false);
+                      }
+                    }}>{dustbinSvg(index)}
+                  </button>
                 </div>
                 <div className="justify-start pd-2 mr-2 ">
-                <button onClick={() => {
-                      if (!publicNotes[index]) {
-                        handleTogglePrivate(index);
-                      } else {
-                        handleTogglePublic(index);
-                      }
-                    }}>
-                    {!publicNotes[index] ? <Lock /> : <Public />}
-                </button>
                 </div>
               </div>
             </div>
-          )) }
+          ))}
         </div>
-      </div>}
+      </div>
+      {loading && (
+        <div className="flex items-center justify-center absolute inset-0 bg-gray-900 bg-opacity-50">
+          <PulseLoader color="#5FA5F9" />
+      </div>)}
     </div>
   );
 };
