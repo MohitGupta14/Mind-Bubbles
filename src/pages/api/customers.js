@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { getSession } from 'next-auth/react';
+//import { getSession } from 'next-auth/react';
 import connectDb from '../../utils/db';
 
 const customerSchema = new mongoose.Schema({
@@ -14,14 +14,14 @@ export default async function handler(req, res) {
     await connectDb(); 
 
     if (req.method === 'GET') {
-      const session = await getSession({ req });
+      // const session = await getSession({ req });
 
-      if (!session) {
-        res.status(401).json({ error: 'Unauthorized' });
-        return;
-      }
+      // if (!session) {
+      //   res.status(401).json({ error: 'Unauthorized' });
+      //   return;
+      // }
 
-      const data = await Customer.find({ token: session.user.email });
+      const data = await Customer.find({});
       console.log('Data from MongoDB:', data);
       res.status(200).json(data);
     } else if (req.method === 'POST') {
