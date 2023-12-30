@@ -3,6 +3,7 @@ import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
 
 const options = {
+  site : 'https://note-me-omega.vercel.app',
   providers: [
     GitHubProvider({
       clientId: process.env.GITHUB_ID,
@@ -47,8 +48,9 @@ const options = {
         }
       },
     }),
+   
   ],
-
+  database: process.env.MONGODB_URI,
   theme: {
     colorScheme: "light", // "auto" | "dark" | "light"
     brandColor: "#5FA5F9", // Hex color code
