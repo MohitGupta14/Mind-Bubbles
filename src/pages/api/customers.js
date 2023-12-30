@@ -1,32 +1,33 @@
 import mongoose from 'mongoose';
 import { getSession } from 'next-auth/react';
+import connectDb from '../../utils/db';
 
 const customerSchema = new mongoose.Schema({
-    content: String,
-    token: String
-},{ versionKey: false });
-  
-const Customer =  mongoose.model('Customer', customerSchema);
+  content: String,
+  token: String,
+}, { versionKey: false });
+
+const Customer = mongoose.model('Customer', customerSchema);
 
 export default async function handler(req, res) {
   try {
-    await mongoose.connect(process.env.MONGODB_URI);
-    console.log('Connected to MongoDB');
+    await connectDb(); 
 
     if (req.method === 'GET') {
-      // Handle GET request
       const session = await getSession({ req });
+
       if (!session) {
         res.status(401).json({ error: 'Unauthorized' });
         return;
       }
+
       const data = await Customer.find({ token: session.user.email });
       console.log('Data from MongoDB:', data);
       res.status(200).json(data);
     } else if (req.method === 'POST') {
       // Handle POST request
-      const { content ,token } = req.body;
-      const newNote = new Customer({  content, token }); 
+      const { content, token } = req.body;
+      const newNote = new Customer({ content, token });
       const result = await newNote.save();
 
       console.log('Added note:', result);
@@ -55,7 +56,5 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error('Error processing request:', error);
     res.status(500).json({ error: 'Internal Server Error' });
-  } finally {
-    await mongoose.disconnect();
   }
 }
