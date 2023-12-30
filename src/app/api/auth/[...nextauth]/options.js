@@ -51,6 +51,7 @@ const options = {
    
   ],
   database: process.env.MONGODB_URI,
+  secret: process.env.NEXTAUTH_SECRET,
   theme: {
     colorScheme: "light", // "auto" | "dark" | "light"
     brandColor: "#5FA5F9", // Hex color code
