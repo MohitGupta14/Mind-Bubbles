@@ -9,7 +9,7 @@ import { PulseLoader } from 'react-spinners';
 const Notes = () => {
   const [newNote, setNewNote] = useState('');
   const [notes, setNotes] = useState([]);
-  const [isPrivate, setIsPrivate] = useState(true);
+ // const [isPrivate, setIsPrivate] = useState(true);
   const [loading, setLoading] = useState(false);
   const { data: session, status } = useSession();
 
@@ -25,14 +25,13 @@ const Notes = () => {
         console.log("Length of notes is " + notes.length);
         for(let i = 0 ; i < notesData.length; i++) {
          if(!notes.includes(notesData[i].content)){
-          if(notesData[i].token === session.user.email){
-           notes.push(notesData[i].content);
-          }
+          notes.push(notesData[i].content);
          }
         }
-        setLoading(false);
       } catch (error) {
         console.error('Error fetching notes:', error.message);
+      }finally{
+        setLoading(false);
       }
     };
    if(session){
@@ -48,7 +47,7 @@ const Notes = () => {
         setNotes([newNote, ...notes]);
         setNewNote('');
         try {
-          const response = await addNoteToDatabase({  status : isPrivate, content: newNote , token :session.user.email});
+          const response = await addNoteToDatabase({  content: newNote , token :session.user.email});
           if (response.ok) {
             const newNoteData = await response.json();
             console.log('Added note to database:', newNoteData);
@@ -91,6 +90,7 @@ const Notes = () => {
     const response = await axios.get('/api/customers');
     const notesData = response.data;
     const customerId = notesData[index]._id;
+  
     try {
       if (!customerId) {
         throw new Error('Customer ID not provided');

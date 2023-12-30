@@ -1,12 +1,12 @@
 import mongoose from 'mongoose';
+import { getSession } from 'next-auth/react';
 
-  const customerSchema = new mongoose.Schema({
-    status: String,
+const customerSchema = new mongoose.Schema({
     content: String,
     token: String
-  });
+},{ versionKey: false });
   
-  const Customer =  mongoose.model('Customer', customerSchema);
+const Customer =  mongoose.model('Customer', customerSchema);
 
 export default async function handler(req, res) {
   try {
@@ -15,13 +15,18 @@ export default async function handler(req, res) {
 
     if (req.method === 'GET') {
       // Handle GET request
-      const data = await Customer.find({});
+      const session = await getSession({ req });
+      if (!session) {
+        res.status(401).json({ error: 'Unauthorized' });
+        return;
+      }
+      const data = await Customer.find({ token: session.user.email });
       console.log('Data from MongoDB:', data);
       res.status(200).json(data);
     } else if (req.method === 'POST') {
       // Handle POST request
-      const { status, content ,token } = req.body; // Change "title" to "Title"
-      const newNote = new Customer({ status, content, token }); // Change "title" to "Title"
+      const { content ,token } = req.body;
+      const newNote = new Customer({  content, token }); 
       const result = await newNote.save();
 
       console.log('Added note:', result);
