@@ -40,7 +40,6 @@ const Notes = () => {
   }, [session]); 
 
   const handleAddNote = async () => {
-    if (status === "authenticated") {
       console.log(session.user.email);
     
       if (newNote.trim() !== '') {
@@ -58,7 +57,7 @@ const Notes = () => {
           console.error('Error adding note to database:', error.message);
         }
       }
-    }
+    
   };
 
   const addNoteToDatabase = async (newNote) => {
