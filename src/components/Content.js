@@ -10,33 +10,42 @@ export default function Content() {
   const [userId, setUserId] = useState(null);
 
   useEffect(() => {
-    const findUser = async () => {
+    const fetchUserId = async () => {
       try {
-        if (session && session.user && !userId) {
-          const userResponse = await axios.get('/api/user', { params: { email: session.user.email, name : session.user.name } });
-          console.log(userResponse);
-          if (userResponse.status === 200) {
-            setUserId(userResponse.data._id);
-            console.log('User found:', userResponse.data);
-          } 
+        if (session && session.user) {
+          let cachedUserId = localStorage.getItem('userId');
+          if (!cachedUserId) {
+            const userResponse = await axios.get('/api/user', { params: { email: session.user.email, name: session.user.name } });
+            if (userResponse.status === 200) {
+              const { _id } = userResponse.data;
+              localStorage.setItem('userId', _id);
+              setUserId(_id);
+              console.log('User found:', userResponse.data);
+            }
+          } else {
+            setUserId(cachedUserId);
+          }
         }
-      } catch (findUserError) {
-        console.error('Error finding or creating user:', findUserError);
+      } catch (error) {
+        console.error('Error finding or creating user:', error);
       }
-    };  
-    if (session && session.user && !userId) {
-      findUser();
+    };
+
+    if (session) {
+      fetchUserId();
     }
-  
-  }, [session, userId]);
+  }, [session]);
 
   return (
     <SessionProvider session={session}>
       <Navbar />
-      {userId ? <Notes userId={userId} /> :  
+      {userId ? (
+        <Notes userId={userId} />
+      ) : (
         <div className="flex items-center justify-center absolute inset-0 bg-gray-900 bg-opacity-50">
           <PulseLoader color="#5FA5F9" />
-      </div>}
+        </div>
+      )}
     </SessionProvider>
   );
 }
