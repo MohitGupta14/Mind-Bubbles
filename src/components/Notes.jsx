@@ -6,68 +6,65 @@ import { useSession } from "next-auth/react"
 import { PulseLoader } from 'react-spinners';
 
 
-const Notes = () => {
+const Notes = ({userId}) => {
   const [newNote, setNewNote] = useState('');
   const [notes, setNotes] = useState([]);
- // const [isPrivate, setIsPrivate] = useState(true);
   const [loading, setLoading] = useState(false);
-  const { data: session, status } = useSession();
-
+  const { data: session } = useSession();
   const handleInputChange = (e) => {
     setNewNote(e.target.value);
   };
   useEffect(() => {
     const fetchNotes = async () => {
+      if (!session) return;
+  
+      setLoading(true);
       try {
-        setLoading(true);
-        const response = await fetch('/api/customers');
-        const notesData = await response.json();
-        console.log("Length of notes is " + notes.length);
-        for(let i = 0 ; i < notesData.length; i++) {
-         if(!notes.includes(notesData[i].content)){
-          notes.push(notesData[i].content);
-         }
-        }
+        const response = await axios.get('/api/content', { params: { userId: userId } });
+        const notesData = response.data;
+        setNotes(prevNotes => {
+          const uniqueNotes = notesData.reduce((accumulator, note) => {
+              const exists = accumulator.some(existingNote => existingNote.content === note.content);
+                  if (!exists) {
+                  return [...accumulator, note];
+              }
+              return accumulator;
+          }, prevNotes);
+      
+          return uniqueNotes;
+      });
+      
       } catch (error) {
-        console.error('Error fetching notes:', error.message);
-      }finally{
+        console.error('Error fetching data:', error);
+      } finally {
         setLoading(false);
       }
     };
-   if(session){
     fetchNotes();
-   }
-  }, [session]); 
+  }, [session, notes]);
+  
 
   const handleAddNote = async () => {
-      console.log(session.user.email);
-    
-      if (newNote.trim() !== '') {
-        setNotes([newNote, ...notes]);
-        setNewNote('');
-        try {
-          const response = await addNoteToDatabase({  content: newNote , token :session.user.email});
-          if (response.ok) {
-            const newNoteData = await response.json();
-            console.log('Added note to database:', newNoteData);
-          } else {
-            console.error('Failed to add note to database');
-          }
-        } catch (error) {
-          console.error('Error adding note to database:', error.message);
-        }
+    if (newNote.trim() !== '') {
+      setNotes([...notes, { content: newNote }]);
+      setNewNote('');
+      try {
+        const response = await addNoteToDatabase({  content: newNote , email :session.user.email});
+        if (response.ok) {
+          await response.json();
+        } 
+      } catch (error) {
+        console.error('Error adding note to database:', error.message);
       }
-    
+    }
   };
 
   const addNoteToDatabase = async (newNote) => {
     try {
-      const response = await fetch('/api/customers', {
-        method: 'POST',
+      const response = await axios.post(`/api/content?createdBy=${userId}`, newNote, {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(newNote),
       });
       
       return response;
@@ -76,32 +73,19 @@ const Notes = () => {
     }
   };
 
-  const handleDeleteNote = async (index) => {
+  const handleDeleteNote = async (index, note) => {
     setLoading(true);
     const updatedNotes = [...notes];
-    const deletedNote = updatedNotes.splice(index, 1)[0];
+    const deletedNote = updatedNotes.splice(index, 1);
     setNotes(updatedNotes);
-    await deleteNoteFromServer(index)
+    await deleteNoteFromServer(note)
     setLoading(false);
   };
   
-  const deleteNoteFromServer = async (index) => {
-    const response = await axios.get('/api/customers');
-    const notesData = response.data;
-    const customerId = notesData[index]._id;
-  
-    try {
-      if (!customerId) {
-        throw new Error('Customer ID not provided');
-      }
-  
-      await axios.delete(`/api/customers?id=${customerId}`, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      console.log(`Customer with ID ${customerId} deleted from the server using axios`);
-    } catch (error) {
+  const deleteNoteFromServer = async (content) => {
+      try{
+      await axios.delete('/api/content', { params: { content: content.content || content }});
+      } catch (error) {
       console.error('Error deleting customer from the server:', error.message);
       throw error;
     }
@@ -148,7 +132,7 @@ const Notes = () => {
   )
   
   return (
-    <div className="">
+   <div className="">
       <div className="flex mt-6 ml-5 w-50%">
         <Textarea
           placeholder="Type your note here..."
@@ -161,33 +145,36 @@ const Notes = () => {
       </div>
       <div className="flex mt-4 mx-2 pl-2 w-full lg:w-90p">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-          {
-            notes.map((note, index) => (
-            <div
-              key={index}
-              className={`p-2 rounded-md ${faintBlue}`}
-              style={{ height: '350px', width: '350px' }}
-            >
-              <div className="relative flex flex-col h-full">
-                <div className="flex-grow pd-2 mr-2">{note}</div>
-                <div className="flex justify-end">
-                  <button onClick={async () => { 
-                      try {
-                        setLoading(true);
-                        await handleDeleteNote(index);
-                      } catch (error) {
-                        console.error('Error deleting note:', error.message);
-                      } finally {
-                        setLoading(false);
-                      }
-                    }}>{dustbinSvg(index)}
-                  </button>
-                </div>
-                <div className="justify-start pd-2 mr-2 ">
+          {notes.map((note, index) => {
+            return (
+              <div
+                key={index}
+                className={`p-2 rounded-md ${faintBlue}`}
+                style={{ height: '350px', width: '350px' }}
+              >
+                <div className="relative flex flex-col h-full">
+                  <div className="flex-grow pd-2 mr-2">{note?.content || note}</div>
+                  <div className="flex justify-end">
+                    <button
+                      onClick={async () => {
+                        try {
+                          setLoading(true);
+                          await handleDeleteNote(index , note);
+                        } catch (error) {
+                          console.error('Error deleting note:', error.message);
+                        } finally {
+                          setLoading(false);
+                        }
+                      }}
+                    >
+                      {dustbinSvg(index)}
+                    </button>
+                  </div>
+                  <div className="justify-start pd-2 mr-2">{/* Additional content */}</div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
       {loading && (

@@ -1,36 +1,48 @@
 "use client"
-import React, { useState } from 'react';
-import Navbar from "../components/Navbar";
-import Notes from "../components/Notes";
+
+import React, { useState, useEffect } from 'react';
+
 import axios from 'axios';
-import { SessionProvider } from "next-auth/react"
-
-import { useEffect } from 'react';
-
-const fetchData = async () => {
-  try {
-    const response = await axios.get('/api/customers');
-    const data = response.data;
-    console.log('Data from API:', data);
-  } catch (error) {
-    console.error('Error fetching data:', error);
-  }
-};
+import { SessionProvider, useSession } from "next-auth/react";
+import Notes from '../../components/Notes';
+import Navbar from '../../components/Navbar';
 
 export default function Home() {
-  useEffect(() => {
-    fetchData();
-  }, []);
+  const { data: session } = useSession();
+  const [userId, setUserId] = useState(null)
 
-  const togglePublicNotes = () => {
-    setShowPublicNotes(!showPublicNotes);
-  };
+  useEffect(async () => {
+    const fetchData = async () => {
+      try {
+        const response = await axios.get('/api/content', { params: { email: session.user.email } });
+        const data = response.data;
+        setUserId(response.data._id);
+        console.log('Data from API:', data);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    };
 
+    const createUser = async () => {
+      try {
+        await axios.post('/api/user', { email: session.user.email, image: session.user.image, name: session.user?.name });
+      } catch (error) {
+        console.error('Error creating user:', error);
+      }
+    };
+
+    if (session) {
+      await createUser();
+    
+      fetchData();
+    }
+  }, [session]);
   return (
-    <SessionProvider className="">
-      <Navbar onTogglePublicNotes={togglePublicNotes} />
-      <Notes />
-   </SessionProvider>
+    
+      <SessionProvider className="">
+        <Navbar />
+        {session && userId && <Notes userId={userId} />}
+      </SessionProvider>
+    
   );
 }
-

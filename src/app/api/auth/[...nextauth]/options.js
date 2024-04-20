@@ -1,6 +1,5 @@
 import GitHubProvider from "next-auth/providers/github";
 import GoogleProvider from "next-auth/providers/google";
-import CredentialsProvider from "next-auth/providers/credentials";
 
 const options = {
   site : 'https://note-me-omega.vercel.app',
@@ -20,35 +19,7 @@ const options = {
     GoogleProvider({
       clientId: process.env.GOOGLE_ID,
       clientSecret: process.env.GOOGLE_SECRET,
-    }),
-
-    CredentialsProvider({
-      user : "credentials",
-      credentials: {
-        email: {
-          label: "mail",
-          type: "text",
-          placeholder: "enter email",
-        },
-        password: {
-          label: "password",
-          type: "password",
-          placeholder: "enter password",
-        },
-      },
-      async authorize(credentials) {
-        const user = { email: "user@mail.com", password: "123123" };
-        if (
-          credentials.email === user.email &&
-          credentials.password === user.password
-        ) {
-          return user;
-        } else {
-          return null;
-        }
-      },
-    }),
-   
+    })
   ],
   database: process.env.MONGODB_URI,
   secret: process.env.NEXTAUTH_SECRET,

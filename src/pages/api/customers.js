@@ -20,7 +20,7 @@ export default async function handler(req, res) {
         res.status(401).json({ error: 'Unauthorized' });
         return;
       }
-
+      
       const data = await Customer.find({token : session.user.mail});
       console.log('Data from MongoDB:', data);
       res.status(200).json(data);
