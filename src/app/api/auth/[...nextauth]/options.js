@@ -4,18 +4,18 @@ import GoogleProvider from "next-auth/providers/google";
 const options = {
   site : 'https://note-me-omega.vercel.app',
   providers: [
-    GitHubProvider({
-      clientId: process.env.GITHUB_ID,
-      clientSecret: process.env.GITHUB_SECRET,
-      profile(profile) {
-        console.log("Github Profile", profile);
-        let userRole = "github user";
-        if (profile?.email === 'momgmohit@gmail.com') {
-          userRole = "admin";
-        }
-        return { ...profile, role: userRole };
-      },
-    }),
+    // GitHubProvider({
+    //   clientId: process.env.GITHUB_ID,
+    //   clientSecret: process.env.GITHUB_SECRET,
+    //   profile(profile) {
+    //     console.log("Github Profile", profile);
+    //     let userRole = "github user";
+    //     if (profile?.email === 'momgmohit@gmail.com') {
+    //       userRole = "admin";
+    //     }
+    //     return { ...profile, role: userRole };
+    //   },
+    // }),
     GoogleProvider({
       clientId: process.env.GOOGLE_ID,
       clientSecret: process.env.GOOGLE_SECRET,
