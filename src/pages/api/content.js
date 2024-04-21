@@ -33,7 +33,6 @@ export default async function handler(req, res) {
             res.status(400).json("content not found");
         }
         const data = await Content.findOneAndDelete({content : content});
-        console.log(data)
         if(!data) res.status(404).json("Note Deleted Successfully");
         res.status(200).json(data);
       }

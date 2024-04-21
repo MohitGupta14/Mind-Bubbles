@@ -10,6 +10,7 @@ const Notes = ({userId}) => {
   const [newNote, setNewNote] = useState('');
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const { data: session } = useSession();
   const handleInputChange = (e) => {
     setNewNote(e.target.value);
@@ -17,7 +18,6 @@ const Notes = ({userId}) => {
   useEffect(() => {
     const fetchNotes = async () => {
       if (!session) return;
-  
       setLoading(true);
       try {
         const response = await axios.get('/api/content', { params: { userId: userId } });
@@ -41,7 +41,7 @@ const Notes = ({userId}) => {
       }
     };
     fetchNotes();
-  }, [session, notes]);
+  }, [session, notes, deleting]);
   
 
   const handleAddNote = async () => {
@@ -75,13 +75,20 @@ const Notes = ({userId}) => {
 
   const handleDeleteNote = async (index, note) => {
     setLoading(true);
-    const updatedNotes = [...notes];
+    let updatedNotes = [...notes];
     const deletedNote = updatedNotes.splice(index, 1);
-    setNotes(updatedNotes);
-    await deleteNoteFromServer(note)
+    setDeleting(true);
+    try {
+        await deleteNoteFromServer(note); 
+        setNotes(updatedNotes);
+        console.log("After Deletion", updatedNotes);
+    } catch (error) {
+        console.error("Error deleting note:", error);
+    }
+    setDeleting(false);
     setLoading(false);
   };
-  
+
   const deleteNoteFromServer = async (content) => {
       try{
       await axios.delete('/api/content', { params: { content: content.content || content }});
